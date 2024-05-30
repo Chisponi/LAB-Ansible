@@ -1,0 +1,45 @@
+---
+  
+- name: gather kernel version
+  hosts: all
+  vars:
+    filename: /tmp/kernelv.txt
+    dst_folder: /tmp/hosts
+  tasks:
+
+    - name: delete the centralized file
+      file:
+        path: "{{ filename }}"
+        state: absent
+      delegate_to: localhost
+      run_once: true
+
+    - name: ensure directory exists
+      file:
+        path: "{{ dst_folder }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: do the job
+      shell: uname -a
+      register: kernelv
+
+    - name: print output to screen
+      debug:
+        msg: '{{ kernelv.stdout }}'
+
+    - name: print output to file per host
+      copy:
+        content: "{{ kernelv.stdout }}"
+        dest: "{{ dst_folder }}/{{ ansible_hostname }}.txt"
+      delegate_to: localhost
+
+    - name: print output to a centralized file
+      lineinfile:
+        path: "{{ filename }}"
+        line: "{{ ansible_hostname }} {{ kernelv.stdout.split(\" \")[2] }}"
+        create: true
+      delegate_to: localhost
+
+...
