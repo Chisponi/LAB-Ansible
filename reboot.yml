@@ -1,3 +1,10 @@
 ---
-- name: Reboot the machine with all defaults using Ansible
-  reboot:
+- name: sample playbook for role 'reboot'
+  hosts: all
+  become: 'yes'
+  vars:
+    reboot_forced: true
+  tasks:
+    - name: Include role 'reboot'
+      ansible.builtin.include_role:
+        name: reboot
