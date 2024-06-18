@@ -1,0 +1,55 @@
+---
+# tasks file for roles/apache
+- name: Instala Apache Web Server
+  ansible.builtin.package:
+    name: "{{ apache_package_name }}"
+    state: present
+
+- name: Asegura que apache esté habilitado
+  ansible.builtin.service:
+    name: "{{ apache_service_name  }}"
+    state: started
+    enabled: true
+
+- name: Instala Firewalld
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
+- name: Asegura que Firewalld esté corriendo
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: permite trafico HTTPS a los servers
+  ansible.posix.firewalld:
+    service: https
+    permanent: true
+    state: enabled
+  when: inventory_hostname in groups['web']
+  notify: Reload Firewall
+
+- name: Despliega el index.html de Jinja
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+
+- name: Muestra Valores de variable
+  ansible.builtin.debug:
+    var: apache_service_name
+
+- name: Muestra Mensaje Cuustom
+  ansible.builtin.debug:
+    msg: "El nombre del servicio de apache es {{ apache_service_name }}"
+
+- name: Configuracion Apache con un potencial Failure Point
+  block:
+    - name: Copia configuracion de Apache
+      ansible.builtin.copy:
+        src: "{{ apache_conf_src }}"
+        dest: "/etc/httpd/conf/httpd.conf"
+  rescue:
+    - name: Manejo de Configuracion perdida
+      ansible.builtin.debug:
+        msg: "Configuracion faltante '{{ apache_conf_src }}'. Utilizando settings por defecto."

@@ -1,0 +1,61 @@
+---
+- name: Setup de sistema basico
+  hosts: all
+  become: true
+  vars:
+    user_name: 'Roger'
+    package_name: httpd
+  tasks:
+    - name: Actualiza paquetes de seguridad
+      ansible.builtin.dnf:
+        name: '*'
+        state: latest
+        security: true
+        update_only: true
+   
+    - name: Crea Usuarios
+      ansible.builtin.user:
+        name: "{{ item  }}"
+        state: present
+        create_home: true
+      loop:
+        - alice
+        - bob
+        - carol
+        - chisponi
+  
+    - name: Instala apache solo en los servers del grupo WEB
+      ansible.builtin.dnf:
+        name: "{{ package_name }}"
+        state: present
+      when: inventory_hostname in groups['web']
+
+    - name: Instala firewalld
+      ansible.builtin.dnf:
+        name: firewalld
+        state: present
+
+    - name: asegura que firewalld este corriendo
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Permite trafico HTTPS en los server WEB
+      ansible.posix.firewalld:
+        service: https
+        permanent: true
+        state: enabled
+      when: inventory_hostname in groups['web']
+      notify: Reload Firewall
+
+    - name: Actualiza Mensaje del dia con template Jinja
+      ansible.builtin.template:
+        src: templates/motd.j2
+        dest: /etc/motd
+
+  handlers:
+    - name: recarga el firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: reloaded

@@ -1,0 +1,13 @@
+---
+- name: Checkea resultados de la URL
+  hosts: web
+
+  tasks:
+    - name: Checkea que se puede conectar (GET) y la pagina muestre 200
+      uri:
+        url: "http://{{ ansible_host }}"
+        return_content: yes
+      register: content
+
+    - debug:
+       var: content.content
